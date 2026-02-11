@@ -1,60 +1,42 @@
-# TimeSheetApp
+# TimeSheetApp - WebApp completa (offline-first)
 
-Implementazione iniziale del prodotto con due componenti:
+Questa repository ora include una **webapp completa e testabile end-to-end** in `docs/`, progettata per coprire il flusso completo richiesto per consulenti esterni:
 
-1. **Backend API (FastAPI + SQLAlchemy)** per dominio e workflow contract-driven.
-2. **Frontend Lite statico (`docs/`)** pubblicabile su GitHub Pages per test rapido UX offline-first.
+- gestione incarichi (regole contract-driven, duplicazione, stato)
+- inserimento giornate e attività
+- generazione periodi automatica (mensile/bimestrale/trimestrale + anchor)
+- workflow stati periodo (draft/ready/submitted/approved/rejected/invoiced)
+- generazione relazione con preview + export HTML/DOC/CSV/JSON
+- registro fatture con scadenza DF/DFFM + stati pagamento
+- documenti/checklist
+- trasferte e spese
+- audit trail completo
+- backup/restore JSON
 
-## Stato rispetto alla richiesta
-
-Non è ancora il prodotto completo end-to-end di tutte le sezioni richieste (documenti, trasferte, export PDF/DOCX avanzati, iOS), ma ora include il nucleo operativo richiesto per iniziare in modo strutturato:
-
-- Domain model e CRUD per incarichi, giornate, attività, periodi.
-- Generazione periodi automatica in base a frequenza/anchor.
-- Regole hard principali: blocco weekend, max giornate billable.
-- Workflow stato periodo con audit log e vincolo periodo a zero.
-- Registro fatture con scadenza `DF/DFFM` e blocco fatturazione senza approvazione (override motivato).
-- Demo web statica testabile da GitHub Pages.
-
-## Backend - avvio locale
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-API docs: `http://127.0.0.1:8000/docs`
-
-## Frontend Lite (GitHub Pages)
-
-La cartella `docs/` contiene una mini-webapp offline-first con `localStorage`.
-
-- In locale:
+## Avvio rapido (100% locale)
 
 ```bash
 python -m http.server 4173
 ```
 
-poi apri `http://127.0.0.1:4173/docs/`.
+Apri: `http://127.0.0.1:4173/docs/`
 
-- Su GitHub Pages: abilita Pages sulla branch e directory `/docs`.
+La webapp è completamente offline-first: salva dati in `localStorage` e funziona senza backend.
 
-> Nota: la demo `docs/` è autonoma (no backend) e serve a testare rapidamente inserimento/riepilogo. Per workflow completo usare API backend.
+## Deploy su GitHub Pages
 
-## Endpoint principali aggiunti
+1. Push su GitHub.
+2. In `Settings > Pages`, seleziona branch e cartella `/docs`.
+3. Apri l'URL Pages generato.
 
-- `POST /engagements/{id}/periods/generate?through_date=YYYY-MM-DD`
-- `POST /periods/{id}/status`
-- `POST /invoices`
-- `GET /invoices`
-- `GET /audit-logs`
+## Nota su backend API
 
-## Prossimi step consigliati
+Nel repo è presente anche una base backend FastAPI (`app/`) utile per evoluzione architetturale e successiva conversione iOS native con sync server.
 
-1. UI web completa (dashboard + calendario + periodo + fatture collegate alle API).
-2. Export report (HTML template + PDF/DOCX lato server).
-3. Modulo documenti/checklist + allegati.
-4. Trasferte/rimborsi.
-5. Client iOS offline-first con sync sulle stesse API.
+## Roadmap verso iOS nativa
+
+Con questa base puoi:
+1. validare UX e regole di business nella webapp;
+2. stabilizzare model/use-case;
+3. implementare client iOS nativo (MVVM/Clean) mantenendo stesse regole;
+4. introdurre sync online/offline con backend esistente o evoluto.
