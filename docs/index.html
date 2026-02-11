@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TimeSheetApp - Lite Demo (GitHub Pages)</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>TimeSheetApp - Lite Demo</h1>
+      <p>Demo statica offline-first (localStorage) pubblicabile su GitHub Pages.</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Nuovo incarico</h2>
+        <form id="engagement-form">
+          <input name="title" placeholder="Titolo incarico" required />
+          <input name="clientName" placeholder="Committente" required />
+          <input name="dailyRate" placeholder="Tariffa giornaliera" type="number" min="1" required />
+          <button type="submit">Aggiungi incarico</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Incarichi</h2>
+        <ul id="engagement-list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Inserimento giornata</h2>
+        <form id="workday-form">
+          <select name="engagementId" id="engagement-select" required></select>
+          <input name="date" type="date" required />
+          <label><input name="worked" type="checkbox" checked /> Lavorata</label>
+          <label><input name="billable" type="checkbox" checked /> Rendicontabile</label>
+          <input name="activity" placeholder="Attività principale" required />
+          <button type="submit">Salva giornata</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Riepilogo periodo corrente</h2>
+        <div id="summary"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
