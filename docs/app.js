@@ -66,33 +66,41 @@ function toISO(d) {
 
 
 
-function calculateEasterDate(year) {
-  const a = year % 19;
-  const b = Math.floor(year / 100);
-  const c = year % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31);
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(year, month - 1, day);
+const ITALIAN_HOLIDAYS = {
+  "2026-01-01": "Capodanno",
+  "2026-01-06": "Epifania",
+  "2026-04-05": "Pasqua",
+  "2026-04-06": "Lunedì di Pasqua (Pasquetta)",
+  "2026-04-25": "Liberazione Italia",
+  "2026-05-01": "Festa del lavoro",
+  "2026-06-02": "Festa della Repubblica Italia",
+  "2026-08-15": "Ferragosto",
+  "2026-10-04": "Festa di San Francesco d’Assisi",
+  "2026-11-01": "Tutti i santi",
+  "2026-12-08": "Immacolata Concezione",
+  "2026-12-25": "Natale",
+  "2026-12-26": "Santo Stefano",
+  "2027-01-01": "Capodanno",
+  "2027-01-06": "Epifania",
+  "2027-03-28": "Pasqua",
+  "2027-03-29": "Lunedì di Pasqua (Pasquetta)",
+  "2027-04-25": "Liberazione Italia",
+  "2027-05-01": "Festa del lavoro",
+  "2027-06-02": "Festa della Repubblica Italia",
+  "2027-08-15": "Ferragosto",
+  "2027-10-04": "Festa di San Francesco d’Assisi",
+  "2027-11-01": "Tutti i santi",
+  "2027-12-08": "Immacolata Concezione",
+  "2027-12-25": "Natale",
+  "2027-12-26": "Santo Stefano",
+};
+
+function getItalianHolidayName(dateValue) {
+  return ITALIAN_HOLIDAYS[dateValue] || null;
 }
 
 function isItalianHoliday(dateValue) {
-  const dt = new Date(`${dateValue}T00:00:00`);
-  const year = dt.getFullYear();
-  const md = `${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-  const fixed = new Set(["01-01", "01-06", "04-25", "05-01", "06-02", "08-15", "11-01", "12-08", "12-25", "12-26"]);
-  if (fixed.has(md)) return true;
-  const easter = calculateEasterDate(year);
-  const easterMonday = addDays(easter, 1);
-  return toISO(dt) === toISO(easter) || toISO(dt) === toISO(easterMonday);
+  return Boolean(getItalianHolidayName(dateValue));
 }
 
 function addAudit(entityType, entityId, event, reason = "") {
@@ -254,7 +262,7 @@ function renderDashboard() {
       <article class="card metric-card"><h3>Incarichi attivi</h3><p class="kpi">${active}</p></article>
       <article class="card metric-card"><h3>Periodi aperti</h3><p class="kpi">${openPeriods}</p></article>
       <article class="card metric-card"><h3>Fatture scadute</h3><p class="kpi">${dueInvoices}</p></article>
-      <article class="card metric-card"><h3>Giornate billable totali</h3><p class="kpi">${billableTotal}</p></article>
+      <article class="card metric-card"><h3>Giornate fatturabili totali</h3><p class="kpi">${billableTotal}</p></article>
     </div>
 
     <div class="grid">
@@ -316,7 +324,7 @@ function renderEngagements() {
           <div class="row-3">
             <div><label>Frequenza</label><select name="reportingFrequency"><option>monthly</option><option>bimonthly</option><option>quarterly</option></select></div>
             <div><label>Anchor day</label><input type="number" name="reportingAnchorDay" min="1" max="28" value="1"></div>
-            <div><label>Max giorni billable</label><input type="number" name="maxBillableDays" min="1"></div>
+            <div><label>Max giorni fatturabili</label><input type="number" name="maxBillableDays" min="1"></div>
           </div>
           <div class="row">
             <label><input type="checkbox" name="weekendAllowed"> Weekend consentiti</label>
@@ -450,7 +458,7 @@ function renderCalendar() {
             <div><label>Status</label><select name="status"><option>worked</option><option>non-worked</option><option>blocked</option><option>holiday</option><option>weekend</option></select></div>
           </div>
           <div class="row">
-            <label><input type="checkbox" name="billable" checked> Billable</label>
+            <label><input type="checkbox" name="billable" checked> Fatturabile</label>
             <label><input type="checkbox" name="includeInExport" checked> Includi in export</label>
           </div>
           <label>Attività (separate da ;)</label>
@@ -520,7 +528,7 @@ function renderCalendar() {
         label = item.status;
       } else if (holiday) {
         cls = "status-holiday-it";
-        label = "festivo IT";
+        label = getItalianHolidayName(iso) || "festivo IT";
       } else if (weekend) {
         cls = "status-weekend";
         label = "weekend";
@@ -547,7 +555,7 @@ function renderCalendar() {
 
     const billable = fd.get("billable") === "on";
     const currentBillables = state.workdays.filter((w) => w.engagementId === engagement.id && w.billable && w.status === "worked" && w.id !== editingId).length;
-    if (billable && engagement.maxBillableDays && currentBillables >= engagement.maxBillableDays) return alert("Max giorni billable raggiunto.");
+    if (billable && engagement.maxBillableDays && currentBillables >= engagement.maxBillableDays) return alert("Max giorni fatturabili raggiunto.");
 
     const payload = {
       engagementId: engagement.id,
@@ -675,7 +683,7 @@ function renderPeriods() {
       const totals = calcPeriodTotals(p);
       return `<li>
         <strong>${e?.title || "N/A"}</strong> · ${formatDate(p.startDate)} - ${formatDate(p.endDate)}
-        <div class="small">worked: ${totals.worked}, billable: ${totals.billable}, stimato: € ${totals.amount.toFixed(2)}</div>
+        <div class="small">worked: ${totals.worked}, fatturabili: ${totals.billable}, stimato: € ${totals.amount.toFixed(2)}</div>
         <div class="row-3" style="margin-top:.4rem">
           <select data-status-id="${p.id}">
             ${["draft", "ready", "submitted", "approved", "rejected", "invoiced"].map((s) => `<option ${p.status === s ? "selected" : ""}>${s}</option>`).join("")}
@@ -700,7 +708,7 @@ function renderPeriods() {
       const nextStatus = root.querySelector(`select[data-status-id='${period.id}']`).value;
       const totals = calcPeriodTotals(period);
       if (nextStatus === "submitted" && totals.billable === 0) {
-        const yes = confirm("Periodo a zero billable. Vuoi forzare submit con motivazione?");
+        const yes = confirm("Periodo a zero fatturabili. Vuoi forzare submit con motivazione?");
         if (!yes) return;
         const reason = prompt("Motivazione override periodo a zero:", "periodo a zero concordato") || "override zero period";
         addAudit("period", period.id, "submit_zero_override", reason);
@@ -778,7 +786,7 @@ function renderReports() {
       ...latest.lines.map((d) => `${d.date}: ${(d.activities || []).map((a) => a.title).join(", ") || "-"}`),
       "",
       `Totale giorni worked: ${latest.totals.worked}`,
-      `Totale giorni billable: ${latest.totals.billable}`,
+      `Totale giorni fatturabili: ${latest.totals.billable}`,
       `Compenso stimato: € ${latest.totals.amount.toFixed(2)}`,
     ].join("\n");
   };

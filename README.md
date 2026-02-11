@@ -15,7 +15,7 @@ Questa repository ora include una **webapp completa e testabile end-to-end** in 
 - backup/restore JSON
 - dashboard fatturazione avanzata (giornate fatturate, guadagno e giornate rimanenti)
 - menù laterale dedicato per navigazione più pulita
-- view calendario mensile con evidenza lavorative/non lavorative e festivi italiani
+- view calendario mensile con evidenza lavorative/non lavorative e soli festivi italiani 2026-2027 configurati
 
 ## Avvio rapido (100% locale)
 
