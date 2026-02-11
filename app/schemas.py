@@ -2,7 +2,15 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
-from app.models import EngagementStatus, PeriodStatus, ReportingFrequency, WorkDayStatus
+from app.models import (
+    AuditEntityType,
+    EngagementStatus,
+    InvoiceStatus,
+    PaymentTermType,
+    PeriodStatus,
+    ReportingFrequency,
+    WorkDayStatus,
+)
 
 
 class EngagementBase(BaseModel):
@@ -17,6 +25,7 @@ class EngagementBase(BaseModel):
     daily_rate: float = Field(..., gt=0)
     currency: str = "EUR"
     reporting_frequency: ReportingFrequency = ReportingFrequency.monthly
+    reporting_anchor_day: int = Field(default=1, ge=1, le=28)
     status: EngagementStatus = EngagementStatus.active
 
 
@@ -33,6 +42,7 @@ class EngagementUpdate(BaseModel):
     holidays_allowed: bool | None = None
     max_billable_days: int | None = None
     daily_rate: float | None = Field(default=None, gt=0)
+    reporting_anchor_day: int | None = Field(default=None, ge=1, le=28)
     status: EngagementStatus | None = None
 
 
@@ -104,6 +114,54 @@ class ReportingPeriodRead(ReportingPeriodBase):
     total_worked_days: int
     total_billable_days: int
     amount_estimated: float
+
+    class Config:
+        from_attributes = True
+
+
+class PeriodStatusTransition(BaseModel):
+    status: PeriodStatus
+    reason: str | None = None
+    allow_zero_period: bool = False
+
+
+class AutoPeriodsResponse(BaseModel):
+    created: int
+    periods: list[ReportingPeriodRead]
+
+
+class InvoiceBase(BaseModel):
+    engagement_id: int
+    period_id: int
+    invoice_number: str
+    invoice_date: date
+    amount: float = Field(..., gt=0)
+    currency: str = "EUR"
+    payment_term_type: PaymentTermType = PaymentTermType.df
+    payment_term_days: int = Field(default=30, ge=0, le=365)
+    notes: str | None = None
+
+
+class InvoiceCreate(InvoiceBase):
+    override_reason: str | None = None
+
+
+class InvoiceRead(InvoiceBase):
+    id: int
+    computed_due_date: date
+    status: InvoiceStatus
+
+    class Config:
+        from_attributes = True
+
+
+class AuditLogRead(BaseModel):
+    id: int
+    entity_type: AuditEntityType
+    entity_id: int
+    event: str
+    reason: str | None
+    created_at: datetime
 
     class Config:
         from_attributes = True

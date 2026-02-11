@@ -1,0 +1,54 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, system-ui, Arial, sans-serif;
+}
+body {
+  margin: 0;
+  padding: 1rem;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+header {
+  margin-bottom: 1rem;
+}
+main {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1rem;
+}
+form {
+  display: grid;
+  gap: 0.6rem;
+}
+input,
+select,
+button {
+  border-radius: 8px;
+  border: 1px solid #64748b;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.95rem;
+}
+button {
+  cursor: pointer;
+  background: #2563eb;
+  border: 0;
+  color: white;
+  font-weight: 600;
+}
+ul {
+  padding-left: 1.2rem;
+}
+.badge {
+  display: inline-block;
+  border-radius: 9999px;
+  background: #334155;
+  padding: 0.15rem 0.6rem;
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+}

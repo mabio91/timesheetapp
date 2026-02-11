@@ -37,6 +37,23 @@ class PeriodStatus(str, enum.Enum):
     invoiced = "invoiced"
 
 
+class PaymentTermType(str, enum.Enum):
+    df = "DF"
+    dffm = "DFFM"
+
+
+class InvoiceStatus(str, enum.Enum):
+    prepared = "prepared"
+    sent = "sent"
+    paid = "paid"
+    overdue = "overdue"
+
+
+class AuditEntityType(str, enum.Enum):
+    period = "period"
+    invoice = "invoice"
+
+
 class Engagement(Base):
     __tablename__ = "engagements"
 
@@ -53,11 +70,13 @@ class Engagement(Base):
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     reporting_frequency: Mapped[ReportingFrequency] = mapped_column(Enum(ReportingFrequency), default=ReportingFrequency.monthly)
     status: Mapped[EngagementStatus] = mapped_column(Enum(EngagementStatus), default=EngagementStatus.active)
+    reporting_anchor_day: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     workdays: Mapped[list["WorkDay"]] = relationship("WorkDay", back_populates="engagement", cascade="all, delete-orphan")
     periods: Mapped[list["ReportingPeriod"]] = relationship("ReportingPeriod", back_populates="engagement", cascade="all, delete-orphan")
+    invoices: Mapped[list["Invoice"]] = relationship("Invoice", back_populates="engagement", cascade="all, delete-orphan")
 
 
 class WorkDay(Base):
@@ -105,3 +124,35 @@ class ReportingPeriod(Base):
     client_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     engagement: Mapped[Engagement] = relationship("Engagement", back_populates="periods")
+    invoices: Mapped[list["Invoice"]] = relationship("Invoice", back_populates="period")
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    engagement_id: Mapped[int] = mapped_column(ForeignKey("engagements.id"), nullable=False, index=True)
+    period_id: Mapped[int] = mapped_column(ForeignKey("reporting_periods.id"), nullable=False, index=True)
+    invoice_number: Mapped[str] = mapped_column(String(64), nullable=False)
+    invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), default="EUR")
+    payment_term_type: Mapped[PaymentTermType] = mapped_column(Enum(PaymentTermType), default=PaymentTermType.df)
+    payment_term_days: Mapped[int] = mapped_column(Integer, default=30)
+    computed_due_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[InvoiceStatus] = mapped_column(Enum(InvoiceStatus), default=InvoiceStatus.prepared)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    engagement: Mapped[Engagement] = relationship("Engagement", back_populates="invoices")
+    period: Mapped[ReportingPeriod] = relationship("ReportingPeriod", back_populates="invoices")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    entity_type: Mapped[AuditEntityType] = mapped_column(Enum(AuditEntityType), nullable=False)
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    event: Mapped[str] = mapped_column(String(120), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

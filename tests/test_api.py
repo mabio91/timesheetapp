@@ -40,6 +40,7 @@ def test_engagement_workday_period_flow():
             "max_billable_days": 3,
             "weekend_allowed": False,
             "reporting_frequency": "monthly",
+            "reporting_anchor_day": 1,
         },
     )
     assert engagement_res.status_code == 200
@@ -93,3 +94,52 @@ def test_engagement_workday_period_flow():
     assert payload["total_worked_days"] == 1
     assert payload["total_billable_days"] == 1
     assert payload["amount_estimated"] == 500
+
+
+def test_period_workflow_and_invoice_dffm():
+    engagement_res = client.post(
+        "/engagements",
+        json={
+            "title": "QA support",
+            "client_name": "Beta SRL",
+            "start_date": "2026-02-01",
+            "end_date": "2026-04-30",
+            "daily_rate": 400,
+            "weekend_allowed": True,
+            "reporting_frequency": "monthly",
+            "reporting_anchor_day": 1,
+        },
+    )
+    engagement_id = engagement_res.json()["id"]
+
+    client.post(
+        "/workdays",
+        json={
+            "engagement_id": engagement_id,
+            "date": "2026-02-10",
+            "status": "worked",
+            "billable": True,
+        },
+    )
+
+    generated = client.post(f"/engagements/{engagement_id}/periods/generate?through_date=2026-02-28")
+    assert generated.status_code == 200
+    period_id = generated.json()["periods"][0]["id"]
+
+    approve_res = client.post(f"/periods/{period_id}/status", json={"status": "approved"})
+    assert approve_res.status_code == 200
+
+    invoice_res = client.post(
+        "/invoices",
+        json={
+            "engagement_id": engagement_id,
+            "period_id": period_id,
+            "invoice_number": "INV-001",
+            "invoice_date": "2026-02-10",
+            "amount": 400,
+            "payment_term_type": "DFFM",
+            "payment_term_days": 30,
+        },
+    )
+    assert invoice_res.status_code == 200
+    assert invoice_res.json()["computed_due_date"] == "2026-03-30"
