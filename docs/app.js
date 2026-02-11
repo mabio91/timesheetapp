@@ -149,18 +149,27 @@ function download(filename, content, contentType = "text/plain") {
 
 function setActiveTab(tabId) {
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === tabId));
-  document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
+  document.querySelectorAll(".menu-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
+}
+
+
+function setupMenuToggle() {
+  const toggle = document.getElementById("menu-toggle");
+  const sidebar = document.getElementById("sidebar");
+  if (!toggle || !sidebar) return;
+  toggle.onclick = () => sidebar.classList.toggle("open");
 }
 
 function renderTabs() {
   const container = document.getElementById("tabs");
   container.innerHTML = tabs
-    .map(([id, label]) => `<button class="tab-btn" data-tab="${id}">${label}</button>`)
+    .map(([id, label]) => `<li><button class="menu-btn" data-tab="${id}">${label}</button></li>`)
     .join("");
   container.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-tab]");
     if (!btn) return;
     setActiveTab(btn.dataset.tab);
+    if (window.innerWidth <= 1080) document.getElementById("sidebar")?.classList.remove("open");
   });
 }
 
@@ -908,6 +917,7 @@ function renderAll() {
 }
 
 renderTabs();
+setupMenuToggle();
 setupBackupRestore();
 renderAll();
 setActiveTab("dashboard");

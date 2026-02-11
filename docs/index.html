@@ -13,29 +13,33 @@
         <p>Gestione completa timesheet consulente · Offline-first · Export e audit</p>
       </div>
       <div class="actions">
+        <button id="menu-toggle" class="menu-toggle">☰ Menù</button>
         <button id="export-backup-btn">Backup JSON</button>
         <label class="file-label">Ripristina JSON <input type="file" id="restore-input" accept="application/json" /></label>
       </div>
     </header>
 
-    <nav class="tabs" id="tabs"></nav>
+    <div class="app-layout">
+      <aside class="sidebar" id="sidebar">
+        <h3>Navigazione</h3>
+        <nav aria-label="Menù principale">
+          <ul class="menu-list" id="tabs"></ul>
+        </nav>
+      </aside>
 
-    <main>
-      <section id="dashboard" class="panel active"></section>
-      <section id="engagements" class="panel"></section>
-      <section id="calendar" class="panel"></section>
-      <section id="periods" class="panel"></section>
-      <section id="reports" class="panel"></section>
-      <section id="invoices" class="panel"></section>
-      <section id="documents" class="panel"></section>
-      <section id="travels" class="panel"></section>
-      <section id="audit" class="panel"></section>
-      <section id="settings" class="panel"></section>
-    </main>
-
-    <template id="card-template">
-      <article class="card"></article>
-    </template>
+      <main>
+        <section id="dashboard" class="panel active"></section>
+        <section id="engagements" class="panel"></section>
+        <section id="calendar" class="panel"></section>
+        <section id="periods" class="panel"></section>
+        <section id="reports" class="panel"></section>
+        <section id="invoices" class="panel"></section>
+        <section id="documents" class="panel"></section>
+        <section id="travels" class="panel"></section>
+        <section id="audit" class="panel"></section>
+        <section id="settings" class="panel"></section>
+      </main>
+    </div>
 
     <script src="app.js"></script>
   </body>

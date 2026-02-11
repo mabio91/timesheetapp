@@ -13,6 +13,7 @@ Questa repository ora include una **webapp completa e testabile end-to-end** in 
 - audit trail completo
 - backup/restore JSON
 - dashboard fatturazione avanzata (giornate fatturate, guadagno e giornate rimanenti)
+- menù laterale dedicato per navigazione più pulita
 
 ## Avvio rapido (100% locale)
 
