@@ -170,19 +170,88 @@ function renderDashboard() {
   const dueInvoices = state.invoices.filter((i) => i.status !== "paid" && i.computedDueDate < toISO(new Date())).length;
   const openPeriods = state.periods.filter((p) => ["draft", "ready", "submitted"].includes(p.status)).length;
 
+  const invoicedPeriods = state.periods.filter((p) => p.status === "invoiced");
+  const invoicedDays = invoicedPeriods.reduce((sum, period) => sum + calcPeriodTotals(period).billable, 0);
+  const invoicedAmountFromPeriods = invoicedPeriods.reduce((sum, period) => sum + calcPeriodTotals(period).amount, 0);
+  const invoicedAmountFromInvoices = state.invoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+  const invoicedAmount = Math.max(invoicedAmountFromPeriods, invoicedAmountFromInvoices);
+
+  const billableTotal = state.workdays.filter((w) => w.billable && w.status === "worked").length;
+  const maxBillableTotal = state.engagements.reduce((sum, e) => sum + Number(e.maxBillableDays || 0), 0);
+  const remainingDays = maxBillableTotal > 0 ? Math.max(maxBillableTotal - billableTotal, 0) : null;
+
+  const engagementRows = state.engagements.map((e) => {
+    const billedDays = calcBillableCount(e.id);
+    const billedValue = billedDays * Number(e.dailyRate || 0);
+    const remaining = e.maxBillableDays ? Math.max(e.maxBillableDays - billedDays, 0) : null;
+    const pct = e.maxBillableDays ? Math.min(Math.round((billedDays / e.maxBillableDays) * 100), 100) : null;
+    return { ...e, billedDays, billedValue, remaining, pct };
+  });
+
   root.innerHTML = `
+    <section class="hero-card card">
+      <div>
+        <h2>Panoramica fatturazione</h2>
+        <p class="small">Stato immediato delle giornate fatturate e delle giornate residue disponibili.</p>
+      </div>
+      <div class="hero-values">
+        <div>
+          <div class="small">Giornate fatturate</div>
+          <p class="kpi">${invoicedDays}</p>
+        </div>
+        <div>
+          <div class="small">Guadagno fatturato</div>
+          <p class="kpi">€ ${invoicedAmount.toFixed(2)}</p>
+        </div>
+        <div>
+          <div class="small">Giornate rimanenti</div>
+          <p class="kpi">${remainingDays === null ? "N/D" : remainingDays}</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="metrics-grid">
+      <article class="card metric-card"><h3>Incarichi attivi</h3><p class="kpi">${active}</p></article>
+      <article class="card metric-card"><h3>Periodi aperti</h3><p class="kpi">${openPeriods}</p></article>
+      <article class="card metric-card"><h3>Fatture scadute</h3><p class="kpi">${dueInvoices}</p></article>
+      <article class="card metric-card"><h3>Giornate billable totali</h3><p class="kpi">${billableTotal}</p></article>
+    </div>
+
     <div class="grid">
-      <article class="card"><h3>Incarichi attivi</h3><p class="kpi">${active}</p></article>
-      <article class="card"><h3>Periodi aperti</h3><p class="kpi">${openPeriods}</p></article>
-      <article class="card"><h3>Fatture scadute</h3><p class="kpi">${dueInvoices}</p></article>
       <article class="card">
-        <h3>Promemoria</h3>
-        <ul class="list">
+        <h3>Avanzamento per incarico</h3>
+        <ul class="list dashboard-list">
+          ${engagementRows
+            .map(
+              (e) => `<li>
+                <div class="list-header">
+                  <strong>${e.title}</strong>
+                  <span class="badge ${e.status === "active" ? "ok" : "warn"}">${e.status}</span>
+                </div>
+                <div class="small">${e.clientName} · € ${e.dailyRate}/giorno</div>
+                <div class="progress-wrap">
+                  <div class="progress-bar" style="width:${e.pct || 0}%"></div>
+                </div>
+                <div class="small">Fatturate: <strong>${e.billedDays}</strong> · Guadagno: <strong>€ ${e.billedValue.toFixed(2)}</strong> · Rimanenti: <strong>${e.remaining === null ? "N/D" : e.remaining}</strong></div>
+              </li>`
+            )
+            .join("") || "<li>Nessun incarico disponibile</li>"}
+        </ul>
+      </article>
+
+      <article class="card">
+        <h3>Promemoria operativi</h3>
+        <ul class="list dashboard-list">
           ${state.periods
             .filter((p) => p.status === "draft")
             .slice(0, 6)
             .map((p) => `<li>Periodo in bozza: ${formatDate(p.startDate)} - ${formatDate(p.endDate)}</li>`)
             .join("") || "<li>Nessun promemoria</li>"}
+          ${state.invoices
+            .filter((i) => i.status !== "paid" && i.computedDueDate < toISO(new Date()))
+            .slice(0, 4)
+            .map((i) => `<li>Fattura scaduta: ${i.invoiceNumber} (${formatDate(i.computedDueDate)})</li>`)
+            .join("")}
         </ul>
       </article>
     </div>
