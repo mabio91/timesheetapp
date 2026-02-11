@@ -132,6 +132,34 @@ button.warn { background: #58460f; border-color: #7a651a; }
 .file-label input { display: none; }
 pre { white-space: pre-wrap; background: #0e1a2c; border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem; max-height: 460px; overflow: auto; }
 
+.calendar-grid {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.cal-head {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding-bottom: 0.2rem;
+}
+.cal-day {
+  min-height: 72px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.35rem;
+  background: #0f1c32;
+}
+.cal-day.empty { border-style: dashed; opacity: 0.35; }
+.cal-num { font-weight: 700; font-size: 0.92rem; }
+.cal-label { margin-top: 0.25rem; font-size: 0.76rem; color: var(--muted); text-transform: lowercase; }
+.cal-day.status-worked { background: rgba(34, 197, 94, 0.16); border-color: rgba(34, 197, 94, 0.5); }
+.cal-day.status-non-worked, .cal-day.status-holiday, .cal-day.status-weekend { background: rgba(247, 201, 72, 0.14); }
+.cal-day.status-blocked { background: rgba(255, 107, 107, 0.15); border-color: rgba(255, 107, 107, 0.45); }
+.cal-day.status-holiday-it { background: rgba(90, 143, 255, 0.16); border-color: rgba(90, 143, 255, 0.45); }
+
+
 @media (max-width: 1080px) {
   .app-layout { grid-template-columns: 1fr; }
   .sidebar { display: none; position: static; }

@@ -64,6 +64,37 @@ function toISO(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
+
+
+function calculateEasterDate(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function isItalianHoliday(dateValue) {
+  const dt = new Date(`${dateValue}T00:00:00`);
+  const year = dt.getFullYear();
+  const md = `${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  const fixed = new Set(["01-01", "01-06", "04-25", "05-01", "06-02", "08-15", "11-01", "12-08", "12-25", "12-26"]);
+  if (fixed.has(md)) return true;
+  const easter = calculateEasterDate(year);
+  const easterMonday = addDays(easter, 1);
+  return toISO(dt) === toISO(easter) || toISO(dt) === toISO(easterMonday);
+}
+
 function addAudit(entityType, entityId, event, reason = "") {
   state.auditLogs.unshift({ id: id(), entityType, entityId, event, reason, ts: new Date().toISOString() });
 }
@@ -272,8 +303,9 @@ function renderEngagements() {
   root.innerHTML = `
     <div class="grid">
       <article class="card">
-        <h3>Nuovo incarico</h3>
+        <h3 id="eng-form-title">Nuovo incarico</h3>
         <form id="eng-form">
+          <input type="hidden" name="editingId" />
           <div class="row"><div><label>Titolo</label><input name="title" required></div><div><label>Committente</label><input name="clientName" required></div></div>
           <label>Oggetto</label><textarea name="subject"></textarea>
           <div class="row-3">
@@ -290,7 +322,10 @@ function renderEngagements() {
             <label><input type="checkbox" name="weekendAllowed"> Weekend consentiti</label>
             <label><input type="checkbox" name="holidaysAllowed"> Festivi consentiti</label>
           </div>
-          <button class="primary" type="submit">Salva incarico</button>
+          <div class="row">
+            <button class="primary" id="eng-submit-btn" type="submit">Salva incarico</button>
+            <button type="button" id="eng-cancel-edit">Annulla modifica</button>
+          </div>
         </form>
       </article>
       <article class="card">
@@ -300,11 +335,24 @@ function renderEngagements() {
     </div>
   `;
 
-  root.querySelector("#eng-form").onsubmit = (ev) => {
+  const form = root.querySelector("#eng-form");
+  const submitBtn = root.querySelector("#eng-submit-btn");
+  const titleEl = root.querySelector("#eng-form-title");
+
+  function resetForm() {
+    form.reset();
+    form.elements.editingId.value = "";
+    submitBtn.textContent = "Salva incarico";
+    titleEl.textContent = "Nuovo incarico";
+  }
+
+  root.querySelector("#eng-cancel-edit").onclick = resetForm;
+
+  form.onsubmit = (ev) => {
     ev.preventDefault();
     const fd = new FormData(ev.currentTarget);
-    const engagement = {
-      id: id(),
+    const editingId = String(fd.get("editingId") || "");
+    const payload = {
       title: fd.get("title"),
       clientName: fd.get("clientName"),
       subject: fd.get("subject"),
@@ -316,10 +364,18 @@ function renderEngagements() {
       maxBillableDays: fd.get("maxBillableDays") ? Number(fd.get("maxBillableDays")) : null,
       weekendAllowed: fd.get("weekendAllowed") === "on",
       holidaysAllowed: fd.get("holidaysAllowed") === "on",
-      status: "active",
     };
-    state.engagements.unshift(engagement);
-    addAudit("engagement", engagement.id, "created");
+
+    if (editingId) {
+      const row = getEngagementById(editingId);
+      if (!row) return alert("Incarico non trovato");
+      Object.assign(row, payload);
+      addAudit("engagement", row.id, "updated");
+    } else {
+      const engagement = { id: id(), ...payload, status: "active" };
+      state.engagements.unshift(engagement);
+      addAudit("engagement", engagement.id, "created");
+    }
     persist();
     renderAll();
   };
@@ -332,7 +388,8 @@ function renderEngagements() {
       return `<li>
         <strong>${e.title}</strong> · ${e.clientName} ${warn}<br>
         <span class="small">${formatDate(e.startDate)} - ${formatDate(e.endDate)} · € ${e.dailyRate}/giorno · ${e.reportingFrequency}</span><br>
-        <div class="row" style="margin-top:.4rem">
+        <div class="row-3" style="margin-top:.4rem">
+          <button data-action="edit" data-id="${e.id}">Modifica</button>
           <button data-action="duplicate" data-id="${e.id}">Duplica</button>
           <button data-action="toggle" data-id="${e.id}">${e.status === "active" ? "Chiudi" : "Riapri"}</button>
         </div>
@@ -345,6 +402,24 @@ function renderEngagements() {
     if (!btn) return;
     const engagement = getEngagementById(btn.dataset.id);
     if (!engagement) return;
+    if (btn.dataset.action === "edit") {
+      form.elements.editingId.value = engagement.id;
+      form.elements.title.value = engagement.title;
+      form.elements.clientName.value = engagement.clientName;
+      form.elements.subject.value = engagement.subject || "";
+      form.elements.startDate.value = engagement.startDate;
+      form.elements.endDate.value = engagement.endDate;
+      form.elements.dailyRate.value = engagement.dailyRate;
+      form.elements.reportingFrequency.value = engagement.reportingFrequency;
+      form.elements.reportingAnchorDay.value = engagement.reportingAnchorDay || 1;
+      form.elements.maxBillableDays.value = engagement.maxBillableDays || "";
+      form.elements.weekendAllowed.checked = !!engagement.weekendAllowed;
+      form.elements.holidaysAllowed.checked = !!engagement.holidaysAllowed;
+      submitBtn.textContent = "Aggiorna incarico";
+      titleEl.textContent = "Modifica incarico";
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     if (btn.dataset.action === "duplicate") {
       const copy = { ...engagement, id: id(), title: `${engagement.title} (copy)`, status: "active" };
       state.engagements.unshift(copy);
@@ -360,11 +435,14 @@ function renderEngagements() {
 
 function renderCalendar() {
   const root = document.getElementById("calendar");
+  const today = new Date();
+  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   root.innerHTML = `
     <div class="grid">
       <article class="card">
-        <h3>Nuova giornata</h3>
+        <h3 id="workday-form-title">Nuova giornata</h3>
         <form id="workday-form">
+          <input type="hidden" name="editingId" />
           <label>Incarico</label>
           <select name="engagementId" required>${state.engagements.map((e) => `<option value="${e.id}">${e.title}</option>`).join("")}</select>
           <div class="row">
@@ -379,8 +457,20 @@ function renderCalendar() {
           <textarea name="activities" placeholder="Analisi requisiti; Meeting con cliente"></textarea>
           <label>Note interne</label>
           <textarea name="internalNote"></textarea>
-          <button class="primary" type="submit">Salva giornata</button>
+          <div class="row">
+            <button class="primary" id="workday-submit-btn" type="submit">Salva giornata</button>
+            <button type="button" id="workday-cancel-edit">Annulla modifica</button>
+          </div>
         </form>
+      </article>
+      <article class="card">
+        <h3>Calendario mensile</h3>
+        <div class="row">
+          <div><label>Mese</label><input type="month" id="month-view" value="${defaultMonth}" /></div>
+          <div><label>Incarico</label><select id="month-engagement">${state.engagements.map((e) => `<option value="${e.id}">${e.title}</option>`).join("")}</select></div>
+        </div>
+        <div class="calendar-grid" id="month-calendar"></div>
+        <p class="small">Legenda: <span class="badge ok">worked</span> <span class="badge warn">non worked</span> <span class="badge danger">blocked</span> <span class="badge">festivo IT</span></p>
       </article>
       <article class="card">
         <h3>Giornate inserite</h3>
@@ -389,26 +479,77 @@ function renderCalendar() {
     </div>
   `;
 
-  root.querySelector("#workday-form").onsubmit = (ev) => {
+  const form = root.querySelector("#workday-form");
+  const submitBtn = root.querySelector("#workday-submit-btn");
+  const titleEl = root.querySelector("#workday-form-title");
+
+  function resetWorkdayForm() {
+    form.reset();
+    form.elements.editingId.value = "";
+    submitBtn.textContent = "Salva giornata";
+    titleEl.textContent = "Nuova giornata";
+  }
+
+  function renderMonthCalendar() {
+    const monthInput = root.querySelector("#month-view").value || defaultMonth;
+    const engagementId = root.querySelector("#month-engagement").value;
+    const [y, m] = monthInput.split("-").map(Number);
+    const start = new Date(y, m - 1, 1);
+    const end = new Date(y, m, 0);
+    const firstWeekday = (start.getDay() + 6) % 7;
+
+    const map = new Map(
+      state.workdays
+        .filter((w) => w.engagementId === engagementId && w.date >= toISO(start) && w.date <= toISO(end))
+        .map((w) => [w.date, w])
+    );
+
+    const cells = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((d) => `<div class="cal-head">${d}</div>`);
+    for (let i = 0; i < firstWeekday; i++) cells.push('<div class="cal-day empty"></div>');
+
+    for (let day = 1; day <= end.getDate(); day++) {
+      const dt = new Date(y, m - 1, day);
+      const iso = toISO(dt);
+      const item = map.get(iso);
+      const weekend = [0, 6].includes(dt.getDay());
+      const holiday = isItalianHoliday(iso);
+      let cls = "";
+      let label = "-";
+      if (item) {
+        cls = `status-${item.status}`;
+        label = item.status;
+      } else if (holiday) {
+        cls = "status-holiday-it";
+        label = "festivo IT";
+      } else if (weekend) {
+        cls = "status-weekend";
+        label = "weekend";
+      }
+      cells.push(`<div class="cal-day ${cls}" data-date="${iso}"><div class="cal-num">${day}</div><div class="cal-label">${label}</div></div>`);
+    }
+    root.querySelector("#month-calendar").innerHTML = cells.join("");
+  }
+
+  root.querySelector("#workday-cancel-edit").onclick = resetWorkdayForm;
+
+  form.onsubmit = (ev) => {
     ev.preventDefault();
     const fd = new FormData(ev.currentTarget);
+    const editingId = String(fd.get("editingId") || "");
     const engagement = getEngagementById(fd.get("engagementId"));
     const dateValue = fd.get("date");
     const status = fd.get("status");
     const weekDay = new Date(`${dateValue}T00:00:00`).getDay();
 
     if (!engagement) return alert("Incarico non trovato");
-    if (status === "worked" && !engagement.weekendAllowed && [0, 6].includes(weekDay)) {
-      return alert("Weekend bloccato per questo incarico.");
-    }
+    if (status === "worked" && !engagement.weekendAllowed && [0, 6].includes(weekDay)) return alert("Weekend bloccato per questo incarico.");
+    if (status === "worked" && !engagement.holidaysAllowed && isItalianHoliday(dateValue)) return alert("Festivo italiano bloccato per questo incarico.");
 
     const billable = fd.get("billable") === "on";
-    if (billable && engagement.maxBillableDays && calcBillableCount(engagement.id) >= engagement.maxBillableDays) {
-      return alert("Max giorni billable raggiunto.");
-    }
+    const currentBillables = state.workdays.filter((w) => w.engagementId === engagement.id && w.billable && w.status === "worked" && w.id !== editingId).length;
+    if (billable && engagement.maxBillableDays && currentBillables >= engagement.maxBillableDays) return alert("Max giorni billable raggiunto.");
 
-    const workday = {
-      id: id(),
+    const payload = {
       engagementId: engagement.id,
       date: dateValue,
       status,
@@ -420,8 +561,17 @@ function renderCalendar() {
         .filter(Boolean)
         .map((title) => ({ id: id(), title, includeInExport: fd.get("includeInExport") === "on", category: "general", tags: [] })),
     };
-    state.workdays.unshift(workday);
-    addAudit("workday", workday.id, "created");
+
+    if (editingId) {
+      const row = state.workdays.find((w) => w.id === editingId);
+      if (!row) return alert("Giornata non trovata");
+      Object.assign(row, payload);
+      addAudit("workday", row.id, "updated");
+    } else {
+      const workday = { id: id(), ...payload };
+      state.workdays.unshift(workday);
+      addAudit("workday", workday.id, "created");
+    }
     persist();
     renderAll();
   };
@@ -434,22 +584,49 @@ function renderCalendar() {
       return `<li>
         <strong>${formatDate(w.date)}</strong> - ${e?.title || "N/A"} <span class="badge ${statusBadge}">${w.status}</span>
         <div class="small">${w.activities.map((a) => a.title).join(", ") || "No attività"}</div>
-        <button data-delete="${w.id}" class="danger" style="margin-top:.4rem">Elimina</button>
+        <div class="row" style="margin-top:.4rem">
+          <button data-edit="${w.id}">Modifica</button>
+          <button data-delete="${w.id}" class="danger">Elimina</button>
+        </div>
       </li>`;
     })
     .join("") || "<li>Nessuna giornata</li>";
 
   root.querySelector("#workday-list").onclick = (ev) => {
-    const btn = ev.target.closest("button[data-delete]");
-    if (!btn) return;
-    const idx = state.workdays.findIndex((w) => w.id === btn.dataset.delete);
-    if (idx >= 0) {
-      addAudit("workday", state.workdays[idx].id, "deleted");
-      state.workdays.splice(idx, 1);
-      persist();
-      renderAll();
+    const editBtn = ev.target.closest("button[data-edit]");
+    const delBtn = ev.target.closest("button[data-delete]");
+
+    if (editBtn) {
+      const row = state.workdays.find((w) => w.id === editBtn.dataset.edit);
+      if (!row) return;
+      form.elements.editingId.value = row.id;
+      form.elements.engagementId.value = row.engagementId;
+      form.elements.date.value = row.date;
+      form.elements.status.value = row.status;
+      form.elements.billable.checked = !!row.billable;
+      form.elements.includeInExport.checked = row.activities.every((a) => a.includeInExport);
+      form.elements.activities.value = row.activities.map((a) => a.title).join("; ");
+      form.elements.internalNote.value = row.internalNote || "";
+      submitBtn.textContent = "Aggiorna giornata";
+      titleEl.textContent = "Modifica giornata";
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (delBtn) {
+      const idx = state.workdays.findIndex((w) => w.id === delBtn.dataset.delete);
+      if (idx >= 0) {
+        addAudit("workday", state.workdays[idx].id, "deleted");
+        state.workdays.splice(idx, 1);
+        persist();
+        renderAll();
+      }
     }
   };
+
+  root.querySelector("#month-view").onchange = renderMonthCalendar;
+  root.querySelector("#month-engagement").onchange = renderMonthCalendar;
+  if (state.engagements.length > 0) renderMonthCalendar();
 }
 
 function renderPeriods() {

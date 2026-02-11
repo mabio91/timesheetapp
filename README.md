@@ -4,6 +4,7 @@ Questa repository ora include una **webapp completa e testabile end-to-end** in 
 
 - gestione incarichi (regole contract-driven, duplicazione, stato)
 - inserimento giornate e attività
+- modifica incarichi/giornate esistenti
 - generazione periodi automatica (mensile/bimestrale/trimestrale + anchor)
 - workflow stati periodo (draft/ready/submitted/approved/rejected/invoiced)
 - generazione relazione con preview + export HTML/DOC/CSV/JSON
@@ -14,6 +15,7 @@ Questa repository ora include una **webapp completa e testabile end-to-end** in 
 - backup/restore JSON
 - dashboard fatturazione avanzata (giornate fatturate, guadagno e giornate rimanenti)
 - menù laterale dedicato per navigazione più pulita
+- view calendario mensile con evidenza lavorative/non lavorative e festivi italiani
 
 ## Avvio rapido (100% locale)
 
