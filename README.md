@@ -64,3 +64,26 @@ Con questa base puoi:
 5. Esegui su simulatore iPhone.
 
 > Nota: in questo ambiente Linux non è disponibile Xcode, quindi non posso compilare/eseguire direttamente il target iOS, ma il codice SwiftUI è pronto per integrazione locale su Mac.
+
+
+### Stato funzionale iOS nativa nel repository
+
+Il client SwiftUI in `ios/TimeSheetAppiOS` ora copre i moduli della webapp:
+
+- Dashboard KPI
+- Incarichi (create/edit)
+- Giornate (create/edit/delete, regole weekend/festivi/max fatturabili)
+- Calendario mensile con festivi 2026-2027
+- Periodi
+- Relazioni
+- Fatture (DF/DFFM)
+- Documenti
+- Trasferte
+- Audit
+- Impostazioni + backup/restore JSON
+
+Per la pubblicazione TestFlight restano necessari, per vincoli Apple esterni al codice repository:
+
+- apertura/build/archive in Xcode su macOS
+- signing con team Apple Developer attivo
+- upload su App Store Connect

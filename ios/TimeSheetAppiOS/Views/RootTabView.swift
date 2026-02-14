@@ -15,6 +15,9 @@ struct RootTabView: View {
             WorkdayListView()
                 .tabItem { Label("Giornate", systemImage: "list.bullet.rectangle") }
 
+            ManagementHubView()
+                .tabItem { Label("Gestione", systemImage: "tray.full.fill") }
+
             AuditView()
                 .tabItem { Label("Audit", systemImage: "clock.arrow.circlepath") }
         }
