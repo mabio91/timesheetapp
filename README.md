@@ -44,3 +44,23 @@ Con questa base puoi:
 2. stabilizzare model/use-case;
 3. implementare client iOS nativo (MVVM/Clean) mantenendo stesse regole;
 4. introdurre sync online/offline con backend esistente o evoluto.
+
+## iOS nativa (SwiftUI) - avvio locale
+
+È stato aggiunto uno scaffold nativo in `ios/TimeSheetAppiOS` con:
+
+- App SwiftUI (`TimeSheetAppiOSApp`)
+- Store offline-first locale con persistenza JSON in Documents
+- Modelli dominio (incarichi, giornate, audit)
+- Edit completo incarichi/giornate
+- Calendario mensile con festivi italiani 2026-2027 (lista esplicita)
+
+### Come provarla in locale (macOS)
+
+1. Apri Xcode.
+2. Crea un nuovo progetto iOS App chiamato `TimeSheetAppiOS` (SwiftUI).
+3. Copia dentro il progetto i file da `ios/TimeSheetAppiOS/` mantenendo la struttura cartelle.
+4. Imposta target iOS 17+ (consigliato).
+5. Esegui su simulatore iPhone.
+
+> Nota: in questo ambiente Linux non è disponibile Xcode, quindi non posso compilare/eseguire direttamente il target iOS, ma il codice SwiftUI è pronto per integrazione locale su Mac.
