@@ -44,13 +44,19 @@ function id() {
   return crypto.randomUUID();
 }
 
+function parseISODate(dateValue) {
+  const [y, m, d] = String(dateValue).split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function formatDate(d) {
   if (!d) return "-";
-  return new Date(d).toLocaleDateString("it-IT");
+  const dt = typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? parseISODate(d) : new Date(d);
+  return dt.toLocaleDateString("it-IT");
 }
 
 function endOfMonth(isoDate) {
-  const d = new Date(isoDate);
+  const d = typeof isoDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(isoDate) ? parseISODate(isoDate) : new Date(isoDate);
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }
 
@@ -61,7 +67,11 @@ function addDays(dateObj, n) {
 }
 
 function toISO(d) {
-  return new Date(d).toISOString().slice(0, 10);
+  const dt = new Date(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 
